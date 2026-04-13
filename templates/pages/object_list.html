@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block toolbar %}
+<form id="filter-form" class="toolbar">
+  <input type="search"
+         name="q"
+         placeholder="Search {{ current_type }}..."
+         hx-get="/{{ current_type }}"
+         hx-trigger="keyup changed delay:300ms"
+         hx-target="#card-grid"
+         hx-include="#filter-form">
+
+  {% if available_sides %}
+  <div class="faction-chips">
+    <label class="faction-chip">
+      <input type="radio" name="side" value=""
+             {% if not filter_side %}checked{% endif %}
+             hx-get="/{{ current_type }}"
+             hx-trigger="change"
+             hx-target="#card-grid"
+             hx-include="#filter-form">All
+    </label>
+    {% for s in available_sides %}
+    <label class="faction-chip faction-chip--{{ s | lower | replace(',', '') }}">
+      <input type="radio" name="side" value="{{ s }}"
+             {% if filter_side == s %}checked{% endif %}
+             hx-get="/{{ current_type }}"
+             hx-trigger="change"
+             hx-target="#card-grid"
+             hx-include="#filter-form">{{ s }}
+    </label>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="tech-filter">
+    <span class="tech-label">Tech:&nbsp;<span id="tech-val">{% if filter_tech_min and filter_tech_min != '0' %}&ge;{{ filter_tech_min }}{% else %}Any{% endif %}</span></span>
+    <input type="range" name="tech_min" min="0" max="10"
+           value="{{ filter_tech_min or '0' }}"
+           class="tech-slider"
+           hx-get="/{{ current_type }}"
+           hx-trigger="change"
+           hx-target="#card-grid"
+           hx-include="#filter-form"
+           oninput="document.getElementById('tech-val').textContent = this.value == '0' ? 'Any' : '\u2265' + this.value">
+  </div>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="card-grid" id="card-grid">
+  {% include "partials/unit_cards.html" %}
+</div>
+
+<div class="detail-panel {{ 'open' if selected else '' }}" id="detail-panel">
+  {% if selected %}
+    {% set obj = selected %}
+    {% include "partials/detail_tabs.html" with context %}
+  {% endif %}
+</div>
+{% endblock %}

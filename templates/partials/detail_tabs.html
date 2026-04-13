@@ -1,0 +1,112 @@
+<div class="detail-header">
+  <h2>{{ obj.display_name }}</h2>
+  <div class="id-badge">{{ obj.id }} &middot; {{ obj.type }} &middot; {{ obj.side or 'Neutral' }}</div>
+</div>
+
+{% if vxl_modes|default([]) %}
+<div class="vxl-section">
+  {% if vxl_modes|length > 1 %}
+  <div class="vxl-mode-bar">
+    {% for mode_id, mode_label in vxl_modes %}
+    <button class="vxl-mode-btn{% if loop.first %} active{% endif %}"
+            onclick="setVxlMode('{{ obj.id }}', '{{ mode_id }}', this)">{{ mode_label }}</button>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if vxl_modes[0][0] == 'shp_building' %}
+  <div class="vxl-building-preview">
+    <img src="/sprites/{{ obj.id }}/vxl.png?mode=shp_building"
+         class="vxl-building-img" alt="{{ obj.id }}">
+  </div>
+  {% else %}
+  <div class="vxl-compass">
+    {% for facing, label in [(7,'NW'),(0,'N'),(1,'NE'),(6,'W'),(-1,''),(2,'E'),(5,'SW'),(4,'S'),(3,'SE')] %}
+    {% if facing >= 0 %}
+    <div class="vxl-cell">
+      <img src="/sprites/{{ obj.id }}/vxl.png?facing={{ facing }}&amp;mode={{ vxl_modes[0][0] }}"
+           class="vxl-facing-img" data-facing="{{ facing }}" alt="{{ label }}">
+      <span class="vxl-dir-label">{{ label }}</span>
+    </div>
+    {% else %}
+    <div class="vxl-cell vxl-center">
+      <span class="vxl-center-id">{{ obj.id }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab(event, 'props')">Properties</button>
+  <button class="tab-btn" onclick="showTab(event, 'art')">Art</button>
+  {% if mod_type|default('vanilla') in ('ares', 'phobos') %}
+  <button class="tab-btn" onclick="showTab(event, 'ares')">Ares</button>
+  {% endif %}
+  {% if mod_type|default('vanilla') == 'phobos' %}
+  <button class="tab-btn" onclick="showTab(event, 'phobos')">Phobos</button>
+  {% endif %}
+</div>
+
+<div class="tab-content" id="tab-props">
+  <table class="prop-table">
+    {% for key, value in obj.props.items() %}
+    <tr>
+      <th>{{ key }}</th>
+      <td>
+        <input type="text" value="{{ value }}"
+               hx-post="/edit/{{ obj.id }}/{{ key }}"
+               hx-trigger="change"
+               hx-vals='{"old_value": "{{ value }}", "new_value": ""}'
+               hx-include="this"
+               name="new_value"
+               hx-swap="outerHTML">
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tab-content" id="tab-art" style="display:none;">
+  <table class="prop-table">
+    {% for key, value in obj.art.items() %}
+    <tr>
+      <th>{{ key }}</th>
+      <td><span style="font-family: monospace;">{{ value }}</span></td>
+    </tr>
+    {% endfor %}
+    {% if not obj.art %}
+    <tr><td colspan="2" style="color: var(--muted);">No art data</td></tr>
+    {% endif %}
+  </table>
+</div>
+
+{% if mod_type|default('vanilla') in ('ares', 'phobos') %}
+<div class="tab-content" id="tab-ares" style="display:none;">
+  <p style="color: var(--muted); font-size: 0.85rem;">Ares extension tags will appear here once schemas are loaded.</p>
+</div>
+{% endif %}
+
+{% if mod_type|default('vanilla') == 'phobos' %}
+<div class="tab-content" id="tab-phobos" style="display:none;">
+  <p style="color: var(--muted); font-size: 0.85rem;">Phobos extension tags will appear here once schemas are loaded.</p>
+</div>
+{% endif %}
+
+<script>
+function showTab(e, name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).style.display = 'block';
+  e.target.classList.add('active');
+}
+function setVxlMode(objId, mode, btn) {
+  document.querySelectorAll('.vxl-facing-img').forEach(function(img) {
+    var facing = img.dataset.facing;
+    img.src = '/sprites/' + objId + '/vxl.png?facing=' + facing + '&mode=' + mode;
+  });
+  btn.parentElement.querySelectorAll('.vxl-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+</script>

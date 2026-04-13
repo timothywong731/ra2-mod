@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "ra2modder"
+version = "0.1.0"
+description = "RA2/YR mod inspection and editing tool"
+authors = ["timot"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+flask = "^3.0"
+ra2mix = "^1.0"
+pillow = ">=12.0"
+numpy = ">=2.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=9.0"
+
+[tool.poetry.scripts]
+ra2modder = "ra2modder.__main__:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

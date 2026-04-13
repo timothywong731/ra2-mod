@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="patch-section">
+  <h2>MIX Assets ({{ total }} files)</h2>
+
+  {% for ext, files in by_ext|dictsort %}
+  <div class="asset-group">
+    <h3>{{ ext }} ({{ files|length }})</h3>
+    <div class="asset-list">
+      {% for name, size in files %}
+      <div class="asset-item">
+        {{ name }} <span class="size">({{ (size / 1024)|round(1) }}KB)</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

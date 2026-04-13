@@ -1,0 +1,6 @@
+{% for obj in objects %}
+  {% include "partials/unit_card.html" %}
+{% endfor %}
+{% if not objects %}
+  <p style="color: var(--muted); padding: 20px;">No objects found.</p>
+{% endif %}

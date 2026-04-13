@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RA2 Modder</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>RA2 Modder</h1>
+    <nav>
+      {% for ot in object_types|default([]) %}
+      <a href="/{{ ot }}"
+         class="{{ 'active' if ot == current_type else '' }}">
+        {{ ot.replace('Types', '') }}
+      </a>
+      {% endfor %}
+      <a href="/assets" class="{{ 'active' if request.path == '/assets' else '' }}">Assets</a>
+      <a href="/patch" class="{{ 'active' if request.path == '/patch' else '' }}">Patch</a>
+    </nav>
+    <div class="sidebar-actions">
+      <button class="btn btn-reindex"
+              hx-post="/reindex"
+              hx-confirm="Purge index and rebuild from game files?"
+              hx-indicator=".reindex-spinner">&#x21bb; Reindex
+        <span class="reindex-spinner htmx-indicator">...</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    {% block toolbar %}{% endblock %}
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<div class="card"
+     hx-get="/{{ obj.type }}/{{ obj.id }}"
+     hx-target="#detail-panel"
+     hx-swap="innerHTML"
+     onclick="document.getElementById('detail-panel').classList.add('open')">
+  <img src="/sprites/{{ obj.id }}/cameo.png?side={{ obj.side | urlencode }}" alt="" loading="lazy">
+  <div class="card-info">
+    <h3>{{ obj.display_name }}</h3>
+    <div class="meta">{{ obj.id }} &middot; {{ obj.side or 'Neutral' }}{% if obj.tech_level is defined and obj.tech_level > 0 %} &middot; T{{ obj.tech_level }}{% endif %}</div>
+  </div>
+</div>
