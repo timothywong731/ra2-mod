@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 
 from ra2modder.render.vxl import render_vxl, render_vxl_composite
+from ra2modder.render.palette import load_vpl, remap_player_colors
 from ra2modder.routes.sprites import get_vxl_modes, _resolve_vxl_names, _get_infantry_ready_info
 
 
@@ -372,3 +373,125 @@ def test_get_infantry_ready_info_walk_offset():
     art_section = {"Sequence": "TestSeq"}
     art = {"TestSeq": {"Ready": "8,3,3"}}
     assert _get_infantry_ready_info(art_section, art) == (8, 3)
+
+
+# --- VPL (Voxel Palette Lookup) tests ---
+
+
+def _make_vpl_data() -> bytes:
+    """Build a realistic VPL file: 16-byte header + 768-byte palette + 8192-byte table."""
+    header = b"\x10\x00\x00\x00" * 4             # 16 bytes
+    internal_pal = bytes(range(256)) * 3             # 768 bytes
+    table = bytes(range(256)) * 32                   # 8192 bytes
+    return header + internal_pal + table
+
+
+def test_load_vpl_valid():
+    """Valid VPL data (16-byte header + 768-byte palette + table) returns 8192 ints."""
+    vpl = load_vpl(_make_vpl_data())
+    assert vpl is not None
+    assert len(vpl) == 256 * 32
+
+
+def test_load_vpl_headerless():
+    """Headerless VPL (exactly 8192 bytes) also works."""
+    data = bytes(range(256)) * 32
+    vpl = load_vpl(data)
+    assert vpl is not None
+    assert len(vpl) == 256 * 32
+
+
+def test_load_vpl_reads_correct_offset():
+    """VPL sections start after the 16-byte header and 768-byte palette."""
+    header = b"\x00" * 16
+    internal_pal = b"\xff" * 768
+    # First section byte = 42, rest zeros
+    table = bytes([42]) + b"\x00" * 8191
+    data = header + internal_pal + table
+    vpl = load_vpl(data)
+    assert vpl is not None
+    assert vpl[0] == 42
+
+
+def test_load_vpl_too_short():
+    """VPL data shorter than 8192 bytes returns None."""
+    assert load_vpl(b"\x00" * 100) is None
+
+
+def test_render_vxl_direct_palette_index():
+    """Color index maps directly to palette without VPL."""
+    vxl = _make_vxl([(2, 2, 2, 1, 0)])  # color index 1 = red
+    palette = _make_palette()
+    img = render_vxl(vxl, None, palette)
+    arr = np.array(img)
+    reds = arr[(arr[:, :, 0] > 100) & (arr[:, :, 3] > 0)]
+    assert len(reds) > 0
+
+
+# --- Building damaged mode tests ---
+
+
+def _build_minimal_shp(n_frames: int, full_w: int = 8, full_h: int = 8) -> bytes:
+    """Build a minimal SHP binary with the given number of empty frames."""
+    header = struct.pack("<4H", 0, full_w, full_h, n_frames)
+    info_entries = bytearray()
+    for _ in range(n_frames):
+        info_entries += struct.pack("<4HI4sII", 0, 0, 0, 0, 0, b"\x00" * 4, 0, 0)
+    return header + bytes(info_entries)
+
+
+def test_get_vxl_modes_building_damaged():
+    """Building with multiple SHP frames gets a Damaged mode."""
+    shp_data = _build_minimal_shp(4)
+    art = {"GAPOWR": {}}
+    rules = {"GAPOWR": {}}
+    files = {"gapowr.shp": shp_data}
+    modes = get_vxl_modes("GAPOWR", art, rules, files, obj_type="BuildingTypes")
+    assert ("shp_building", "Building") in modes
+    assert ("shp_building_damaged", "Damaged") in modes
+
+
+def test_get_vxl_modes_building_single_frame_no_damaged():
+    """Building with only 1 SHP frame should not have Damaged mode."""
+    shp_data = _build_minimal_shp(1)
+    art = {"GAPOWR": {}}
+    rules = {"GAPOWR": {}}
+    files = {"gapowr.shp": shp_data}
+    modes = get_vxl_modes("GAPOWR", art, rules, files, obj_type="BuildingTypes")
+    assert modes == [("shp_building", "Building")]
+
+
+# --- Player colour remap tests ---
+
+
+def test_remap_player_colors_allied():
+    """Allied side produces blue gradient at indices 16-31."""
+    pal = [(0, 0, 0)] * 256
+    remapped = remap_player_colors(pal, "GDI")
+    r, g, b = remapped[31]
+    assert b > r and b > g and b > 100
+
+
+def test_remap_player_colors_soviet():
+    """Soviet side produces red gradient at indices 16-31."""
+    pal = [(0, 0, 0)] * 256
+    remapped = remap_player_colors(pal, "Nod")
+    r, g, b = remapped[31]
+    assert r > g and r > b and r > 100
+
+
+def test_remap_player_colors_default():
+    """Unknown side still produces a gradient (default house colour)."""
+    pal = [(0, 0, 0)] * 256
+    remapped = remap_player_colors(pal, "")
+    assert remapped[31] != (0, 0, 0)
+
+
+def test_remap_preserves_non_player_indices():
+    """Indices outside 16-31 are not modified."""
+    pal = [(i, i, i) for i in range(256)]
+    remapped = remap_player_colors(pal, "GDI")
+    assert remapped[0] == (0, 0, 0)
+    assert remapped[15] == (15, 15, 15)
+    assert remapped[32] == (32, 32, 32)
+    assert remapped[255] == (255, 255, 255)

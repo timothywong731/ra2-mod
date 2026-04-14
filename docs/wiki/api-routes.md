@@ -90,6 +90,22 @@ Rebuilds the SQLite index from current game files and patch:
 5. Stores new connection in `app.config["DB"]`
 6. Redirects to `/`
 
+### `GET /<obj_type>/<obj_id>/tree`
+
+Returns a tech tree partial showing prerequisites (upstream) and dependents (downstream) for the object.
+
+**Query parameters:**
+
+| Param | Default | Description |
+|---|---|---|
+| `types` | all types | Checkbox filter — only show objects of these types (repeatable param) |
+
+**Response:** HTMX partial `tech_tree.html` with:
+- Type filter checkboxes (auto-submits on change)
+- Prerequisites section — objects required to build this one (recursive)
+- Root node — the current object highlighted
+- Dependents section — objects this one unlocks (recursive)
+
 ## Sprites Blueprint
 
 ### `GET /sprites/<obj_id>/cameo.png`
@@ -128,6 +144,7 @@ Serves a VXL voxel render or SHP sprite preview.
 |---|---|---|
 | `facing` | `4` | Direction 0–7 (N, NE, E, SE, S, SW, W, NW) |
 | `mode` | `"base"` | Preview mode — see below |
+| `theater` | `"temperate"` | Theater variant for NewTheater buildings (temperate/snow/urban/etc.) |
 
 **VXL modes:**
 
@@ -144,7 +161,11 @@ Serves a VXL voxel render or SHP sprite preview.
 | Mode | Renders |
 |---|---|
 | `shp_stand` | Infantry standing frame for the given facing |
-| `shp_building` | Building frame 0 (ignores facing) |
+| `shp_building` | Building undamaged frame 0 (ignores facing) |
+| `shp_building_damaged` | Building damaged frame 1 |
+| `anim_ActiveAnim` | ActiveAnim overlay as animated GIF |
+| `anim_IdleAnim` | IdleAnim overlay as animated GIF |
+| `anim_<Key>` | Any art.ini animation key as animated GIF |
 
 **Composite rendering flow:**
 

@@ -4,6 +4,52 @@ import numpy as np
 from PIL import Image
 
 
+def shp_frame_count(data: bytes) -> int:
+    """Return the number of frames in an SHP file."""
+    if len(data) < 8:
+        return 0
+    return struct.unpack_from("<H", data, 6)[0]
+
+
+def shp_frame_is_empty(data: bytes, frame_index: int) -> bool:
+    """Check if a specific SHP frame is empty (shadow or blank)."""
+    if len(data) < 8:
+        return True
+    n_frames = struct.unpack_from("<H", data, 6)[0]
+    if frame_index >= n_frames:
+        return True
+    fi_off = 8 + frame_index * 24
+    if fi_off + 24 > len(data):
+        return True
+    fw, fh = struct.unpack_from("<HH", data, fi_off + 4)
+    data_offset = struct.unpack_from("<I", data, fi_off + 20)[0]
+    return fw == 0 or fh == 0 or data_offset == 0
+
+
+def find_first_nonempty_frame(data: bytes, start: int = 0) -> int:
+    """Find the first non-empty frame starting from *start*. Returns *start* if none found."""
+    if len(data) < 8:
+        return start
+    n_frames = struct.unpack_from("<H", data, 6)[0]
+    for i in range(start, n_frames):
+        if not shp_frame_is_empty(data, i):
+            return i
+    return start
+
+
+def render_shp_frames(
+    data: bytes,
+    palette: list[tuple[int, int, int]],
+) -> list[Image.Image]:
+    """Render ALL non-empty frames of an SHP file, returning a list of PIL RGBA Images."""
+    n = shp_frame_count(data)
+    frames = []
+    for i in range(n):
+        if not shp_frame_is_empty(data, i):
+            frames.append(_render(data, palette, i))
+    return frames
+
+
 def render_shp(
     data: bytes,
     palette: list[tuple[int, int, int]],

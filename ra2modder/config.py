@@ -36,13 +36,24 @@ def detect_mod_type(game_dir: Path) -> str:
 def _mix_order_for(game_dir: Path, mod_type: str) -> list[str]:
     """Build MIX load order based on mod type and files present.
 
-    Order: ra2.mix, ra2md.mix first (contain nested local.mix/localmd.mix
-    with base rules/art), then expandmd*.mix, then expandmo*.mix.
+    Order: core archives first (contain nested mixes), then standalone MIX
+    files for palettes/cameos/assets, finally mod expansion packs.
     """
-    base = ["ra2.mix", "ra2md.mix", "langmd.mix"]
+    base = [
+        "ra2.mix", "ra2md.mix",
+        "langmd.mix", "language.mix",
+        "local.mix", "localmd.mix",
+        "cache.mix", "cachemd.mix",
+        "cameo.mix", "cameomd.mix",
+        "conquer.mix", "conqmd.mix",
+        "isotemp.mix", "isosnow.mix", "isolun.mix", "isoura.mix",
+        "temperat.mix", "snow.mix",
+    ]
     if mod_type == "vanilla":
         return base
 
-    # Ares / Phobos: discover expandmd*.mix and expandmo*.mix files
+    # Ares / Phobos: discover expand/ecache/elocal MIX files
     expand = sorted(f.name for f in game_dir.glob("expand*.mix"))
-    return base + expand
+    ecache = sorted(f.name for f in game_dir.glob("ecache*.mix"))
+    elocal = sorted(f.name for f in game_dir.glob("elocal*.mix"))
+    return base + expand + ecache + elocal

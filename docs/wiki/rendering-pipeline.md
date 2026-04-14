@@ -49,9 +49,10 @@ Different object types use different palettes:
 
 | Palette file | Used for |
 |---|---|
-| `unittem.pal` / `unit.pal` | Vehicles and infantry |
+| `unittem.pal` / `unit.pal` | Vehicles, infantry, and most buildings |
 | `cameo.pal` | Build queue cameo icons |
-| `isotem.pal` / `temperat.pal` | Buildings and terrain |
+| `isotem.pal` / `temperat.pal` | Objects with `TerrainPalette=yes` in art.ini |
+| `anim.pal` | Building animation overlays (ActiveAnim, IdleAnim, etc.) |
 
 Palette index **0** is always transparent by convention. Indices **16–31** are remap colours that change to match the player's team colour.
 
@@ -299,13 +300,85 @@ start, fcount, _ = ready.split(",")
 
 ### Building SHP rendering
 
-Buildings use a simple SHP with a small number of frames (undamaged, half-damaged, destroyed). RA2 Modder renders **frame 0** (the undamaged state) as a single preview:
+Standard RA2/YR building SHPs have **6 frames** with a fixed layout:
+
+| Frame | Content |
+|---|---|
+| 0 | Undamaged building |
+| 1 | Damaged building |
+| 2 | Rubble/destroyed |
+| 3 | Shadow (undamaged) |
+| 4 | Shadow (damaged) |
+| 5 | Shadow (rubble) |
+
+Frames 3–5 are shadow overlays — they use dark palette indices and are not useful for previews. The "two halves" convention: first 3 frames are building graphics, last 3 are shadows.
 
 ```python
+# Undamaged → frame 0
 img = render_shp(shp_data, palette, frame_index=0)
+
+# Damaged → frame 1 (NOT n_frames // 2, which would hit a shadow frame)
+img = render_shp(shp_data, palette, frame_index=1)
 ```
 
-Buildings use the isometric palette (`isotem.pal` or `temperat.pal`) rather than the unit palette.
+Most buildings use the **unit palette** (`unittem.pal`). Objects with `TerrainPalette=yes` in art.ini use `isotem.pal` instead.
+
+### NewTheater filename resolution
+
+Buildings with `NewTheater=yes` in their art section use theater-specific SHP files. The 2nd character of the SHP filename is replaced with a theater letter:
+
+| Theater | Letter | Example |
+|---|---|---|
+| Temperate | `G` | `naweap` → `ngweap.shp` |
+| Snow | `A` | `naweap` → `naweap.shp` (2nd char is already `a`) |
+| Urban | `U` | `naweap` → `nuweap.shp` |
+| New Urban | `N` | `naweap` → `nnweap.shp` |
+| Lunar | `L` | `naweap` → `nlweap.shp` |
+| Desert | `D` | `naweap` → `ndweap.shp` |
+
+Vanilla RA2/YR only ships Temperate and Snow variants. The UI shows radio buttons for available theaters and the renderer tries the selected theater SHP first, then falls back to the generic name.
+
+See: [ModEnc — NewTheater](https://modenc.renegadeprojects.com/NewTheater)
+
+### Building animation overlays
+
+Buildings can have separate SHP files for animations, composited on top of the base building frame. Animation SHPs share the same `FullWidth × FullHeight` coordinate space as the building SHP, so they are composited at position (0, 0) — the per-frame `FrameX`/`FrameY` within the SHP handles pixel-level positioning.
+
+**Animation types:**
+
+| Art key | Purpose | Max count |
+|---|---|---|
+| `ActiveAnim` | Active/powered state animation | 4 (ActiveAnimTwo, Three, Four) |
+| `IdleAnim` | Idle state animation | 1 |
+| `SuperAnim` | Superweapon charging animation | 4 |
+| `SpecialAnim` | Special state animation | 4 |
+| `ProductionAnim` | Unit production animation | 1 |
+| `Buildup` | Construction animation | 1 |
+
+**Rendering flow:**
+
+```python
+# 1. Render base building (frame 0) with building palette
+base_img = render_shp(building_shp, palette, frame_index=0)
+
+# 2. Load animation SHP (e.g. art_section["ActiveAnim"] = "GAPOWR_A")
+anim_shp = lower_files[f"{anim_name.lower()}.shp"]
+
+# 3. Render all animation frames with the SAME palette (not anim.pal)
+anim_frames = render_shp_frames(anim_shp, palette)
+
+# 4. Composite each frame onto the base at (0,0)
+for frame in anim_frames:
+    composite = base_img.copy()
+    composite.paste(frame, (0, 0), frame)
+
+# 5. Encode as animated GIF
+img.save(out, format="GIF", save_all=True, append_images=rest, duration=100, loop=0)
+```
+
+Building animations use the **same palette as the building** (`unittem.pal` or `isotem.pal`), not `anim.pal` (which is for standalone animations like fire/explosion effects).
+
+See: [ModEnc — ActiveAnim](https://modenc.renegadeprojects.com/ActiveAnim)
 
 
 ## Cameo Icon Resolution

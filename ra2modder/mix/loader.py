@@ -38,7 +38,7 @@ def load_game_files(config: GameConfig) -> dict[str, bytes]:
     # Pick up loose INI/CSF/PAL files from game directory
     if config.game_dir.is_dir():
         for p in config.game_dir.iterdir():
-            if p.is_file() and p.suffix.lower() in (".ini", ".csf", ".pal"):
+            if p.is_file() and p.suffix.lower() in (".ini", ".csf", ".pal", ".vpl"):
                 result[p.name] = p.read_bytes()
 
     return result

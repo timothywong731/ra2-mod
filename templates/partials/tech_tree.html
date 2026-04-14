@@ -1,0 +1,86 @@
+<div class="tech-tree-filters">
+  <form hx-get="/{{ obj_type }}/{{ obj_id }}/tree" hx-target="#tech-tree-content" hx-swap="innerHTML">
+    {% for otype in object_types %}
+    <label class="tree-filter-chip">
+      <input type="checkbox" name="types" value="{{ otype }}"
+             {% if otype in selected_types %}checked{% endif %}
+             onchange="this.form.requestSubmit()">
+      {{ otype | replace('Types','') }}
+    </label>
+    {% endfor %}
+  </form>
+</div>
+
+<div id="tech-tree-content">
+{% if tree.object is none %}
+  <p class="tree-empty">Object not found.</p>
+{% else %}
+  {% if tree.prerequisites %}
+  <div class="tree-section">
+    <h4 class="tree-heading">Prerequisites (required to build {{ tree.object.id }})</h4>
+    <div class="tree-nodes">
+      {% for node in tree.prerequisites recursive %}
+      <div class="tree-node">
+        <a class="tree-card tree-card--{{ node.side | lower | replace(',','-') or 'neutral' }}"
+           hx-get="/{{ node.type }}/{{ node.id }}"
+           hx-target="#detail-panel"
+           hx-push-url="true">
+          <img src="/sprites/{{ node.id }}/cameo.png?side={{ node.side | urlencode }}" class="tree-cameo" alt="">
+          <div class="tree-info">
+            <span class="tree-name">{{ node.display_name }}</span>
+            <span class="tree-id">{{ node.id }}</span>
+          </div>
+        </a>
+        {% if node.prerequisites %}
+        <div class="tree-children">
+          {{ loop(node.prerequisites) }}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="tree-root">
+    <div class="tree-card tree-card--root">
+      <img src="/sprites/{{ tree.object.id }}/cameo.png?side={{ tree.object.side | urlencode }}" class="tree-cameo" alt="">
+      <div class="tree-info">
+        <span class="tree-name">{{ tree.object.display_name }}</span>
+        <span class="tree-id">{{ tree.object.id }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if tree.dependents %}
+  <div class="tree-section">
+    <h4 class="tree-heading">Unlocks (requires {{ tree.object.id }})</h4>
+    <div class="tree-nodes">
+      {% for node in tree.dependents recursive %}
+      <div class="tree-node">
+        <a class="tree-card tree-card--{{ node.side | lower | replace(',','-') or 'neutral' }}"
+           hx-get="/{{ node.type }}/{{ node.id }}"
+           hx-target="#detail-panel"
+           hx-push-url="true">
+          <img src="/sprites/{{ node.id }}/cameo.png?side={{ node.side | urlencode }}" class="tree-cameo" alt="">
+          <div class="tree-info">
+            <span class="tree-name">{{ node.display_name }}</span>
+            <span class="tree-id">{{ node.id }}</span>
+          </div>
+        </a>
+        {% if node.dependents %}
+        <div class="tree-children">
+          {{ loop(node.dependents) }}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not tree.prerequisites and not tree.dependents %}
+  <p class="tree-empty">No prerequisites or dependents found for this object.</p>
+  {% endif %}
+{% endif %}
+</div>

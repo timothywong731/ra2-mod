@@ -210,16 +210,67 @@ Aircraft use VXL models like vehicles but typically without turrets. They includ
 
 ### Buildings (BuildingTypes)
 
-Buildings use **SHP sprites** rendered in isometric view. A building SHP usually has just a handful of frames:
+Buildings use **SHP sprites** rendered in isometric view. A standard RA2/YR building SHP has **6 frames** with a fixed layout:
 
-- Frame 0: Undamaged
-- Frame 1: Half-damaged
-- Frame 2: Destroyed
-- Additional frames for buildup animation, turret rotation, or active state
+| Frame | Content |
+|---|---|
+| 0 | Undamaged building |
+| 1 | Damaged building |
+| 2 | Rubble/destroyed |
+| 3 | Shadow (undamaged) |
+| 4 | Shadow (damaged) |
+| 5 | Shadow (rubble) |
 
-Buildings use a different palette (`isotem.pal` or `temperat.pal`) than units.
+Frame 0 is the undamaged building, frame 1 is damaged. Frames 3–5 are shadow overlays (dark palette indices, not useful for previews).
+
+Buildings typically use `unittem.pal` (the same as vehicles and infantry). Objects with `TerrainPalette=yes` in their art section use `isotem.pal` instead.
 
 Some special buildings use VXL models (e.g. Yuri's Gatling Cannon, `YAGGUN`).
+
+#### NewTheater System
+
+Buildings with `NewTheater=yes` in art.ini use theater-specific SHP files. The 2nd character of the filename changes per theater:
+
+| Theater | Suffix letter | Example |
+|---|---|---|
+| Temperate | G | `naweap` → `ngweap.shp` |
+| Snow | A | `naweap` → `naweap.shp` (2nd char already `a`) |
+| Urban | U | `naweap` → `nuweap.shp` |
+| New Urban | N | `naweap` → `nnweap.shp` |
+| Lunar | L | `naweap` → `nlweap.shp` |
+| Desert | D | `naweap` → `ndweap.shp` |
+
+Vanilla RA2/YR only ships Temperate and Snow variants. RA2 Modder shows radio buttons for available theaters.
+
+See: [ModEnc — NewTheater](https://modenc.renegadeprojects.com/NewTheater)
+
+#### Building Animation System
+
+Buildings can have separate SHP files for animations, composited on top of the base building frame. Animation SHPs share the same `FullWidth × FullHeight` coordinate space as the building SHP, so they are composited at position (0, 0):
+
+| Art key | Purpose | Max count |
+|---|---|---|
+| `ActiveAnim` | Active/powered state (e.g. lightning bolts on power plant) | 4 |
+| `IdleAnim` | Idle state animation | 1 |
+| `SuperAnim` | Superweapon charging animation | 4 |
+| `SpecialAnim` | Special mode animation (e.g. refinery/grinder) | 4 |
+| `ProductionAnim` | Unit production animation | 1 |
+| `Buildup` | Construction animation | 1 |
+
+Building animations use the **same palette as the building** (`unittem.pal` or `isotem.pal`), not `anim.pal`.
+
+See: [ModEnc — ActiveAnim](https://modenc.renegadeprojects.com/ActiveAnim) · [ModEnc — BuildingTypes](https://modenc.renegadeprojects.com/BuildingTypes)
+
+#### Prerequisite System
+
+Buildings (and other objects) declare prerequisites via the `Prerequisite=` key — a CSV list of object IDs that must be built first:
+
+```ini
+[NATECH]
+Prerequisite=NAWEAP,NARADR
+```
+
+This forms a **tech tree**: Construction Yard → War Factory + Radar → Battle Lab → advanced units. RA2 Modder visualizes this tree showing both what an object requires (upstream) and what it unlocks (downstream).
 
 ### Non-visual types
 
@@ -272,9 +323,10 @@ RA2 uses indexed-color images with 256-color palettes stored as `.pal` files.
 
 | Palette | Used for |
 |---|---|
-| `unittem.pal` / `unit.pal` | Vehicle and infantry rendering |
+| `unittem.pal` / `unit.pal` | Vehicles, infantry, and most buildings |
 | `cameo.pal` | Build queue icons |
-| `isotem.pal` / `temperat.pal` | Buildings and terrain |
+| `isotem.pal` / `temperat.pal` | Objects with `TerrainPalette=yes` (terrain overlays) |
+| `anim.pal` | Building animation overlays |
 
 ### Faction remapping
 

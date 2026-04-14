@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, request, current_app, jsonify, redirect, url_for
 
 from ra2modder.db.indexer import OBJECT_TYPES, build_index
-from ra2modder.db.queries import list_objects, get_object, search_objects, get_distinct_sides
+from ra2modder.db.queries import list_objects, get_object, search_objects, get_distinct_sides, get_tech_tree
 from ra2modder.patch.manager import save_field, revert_field
-from ra2modder.routes.sprites import get_vxl_modes
+from ra2modder.routes.sprites import get_vxl_modes, get_available_theaters
 from ra2modder.ini.rules import load_rules
 from ra2modder.ini.art import load_art
 from ra2modder.csf.reader import parse_csf
@@ -80,6 +80,10 @@ def object_detail(obj_type: str, obj_id: str):
         obj_id, current_app.config["ART"], current_app.config["RULES"],
         current_app.config["GAME_FILES"], obj_type=obj_type,
     )
+    theaters = get_available_theaters(
+        obj_id, current_app.config["ART"], current_app.config["RULES"],
+        current_app.config["GAME_FILES"],
+    )
 
     if request.headers.get("HX-Request"):
         return render_template(
@@ -87,6 +91,7 @@ def object_detail(obj_type: str, obj_id: str):
             obj=obj,
             mod_type=config.mod_type,
             vxl_modes=vxl_modes,
+            theaters=theaters,
         )
 
     objects = list_objects(db, obj_type)
@@ -101,6 +106,7 @@ def object_detail(obj_type: str, obj_id: str):
         selected=obj,
         mod_type=config.mod_type,
         vxl_modes=vxl_modes,
+        theaters=theaters,
     )
 
 
@@ -160,3 +166,20 @@ def reindex():
     if request.headers.get("HX-Request"):
         return "", 200, {"HX-Redirect": "/"}
     return redirect("/")
+
+
+@bp.route("/<obj_type>/<obj_id>/tree")
+def tech_tree(obj_type: str, obj_id: str):
+    """Return a tech tree partial for HTMX lazy loading."""
+    db = current_app.config["DB"]
+    # Parse type filter from query params (checkboxes)
+    type_filter = request.args.getlist("types") or None
+    tree = get_tech_tree(db, obj_id, type_filter=type_filter)
+    return render_template(
+        "partials/tech_tree.html",
+        tree=tree,
+        obj_id=obj_id,
+        obj_type=obj_type,
+        object_types=OBJECT_TYPES,
+        selected_types=type_filter or OBJECT_TYPES,
+    )

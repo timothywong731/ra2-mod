@@ -13,17 +13,29 @@
     {% endfor %}
   </div>
   {% endif %}
+  {% if theaters|default([]) and theaters|length > 1 %}
+  <div class="vxl-theater-bar">
+    {% for tid, tlabel in theaters %}
+    <label class="theater-chip">
+      <input type="radio" name="theater" value="{{ tid }}"
+             {% if loop.first %}checked{% endif %}
+             onchange="setTheater('{{ obj.id }}', this.value)">
+      {{ tlabel }}
+    </label>
+    {% endfor %}
+  </div>
+  {% endif %}
   {% if vxl_modes[0][0] == 'shp_building' %}
   <div class="vxl-building-preview">
-    <img src="/sprites/{{ obj.id }}/vxl.png?mode=shp_building"
-         class="vxl-building-img" alt="{{ obj.id }}">
+    <img src="/sprites/{{ obj.id }}/vxl.png?mode=shp_building&amp;side={{ obj.side | urlencode }}&amp;theater=temperate"
+         class="vxl-building-img" data-side="{{ obj.side }}" data-theater="temperate" alt="{{ obj.id }}">
   </div>
   {% else %}
-  <div class="vxl-compass">
+  <div class="vxl-compass" data-side="{{ obj.side }}">
     {% for facing, label in [(7,'NW'),(0,'N'),(1,'NE'),(6,'W'),(-1,''),(2,'E'),(5,'SW'),(4,'S'),(3,'SE')] %}
     {% if facing >= 0 %}
     <div class="vxl-cell">
-      <img src="/sprites/{{ obj.id }}/vxl.png?facing={{ facing }}&amp;mode={{ vxl_modes[0][0] }}"
+      <img src="/sprites/{{ obj.id }}/vxl.png?facing={{ facing }}&amp;mode={{ vxl_modes[0][0] }}&amp;side={{ obj.side | urlencode }}"
            class="vxl-facing-img" data-facing="{{ facing }}" alt="{{ label }}">
       <span class="vxl-dir-label">{{ label }}</span>
     </div>
@@ -41,6 +53,11 @@
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab(event, 'props')">Properties</button>
   <button class="tab-btn" onclick="showTab(event, 'art')">Art</button>
+  <button class="tab-btn" onclick="showTab(event, 'tree')"
+          hx-get="/{{ obj.type }}/{{ obj.id }}/tree"
+          hx-target="#tab-tree"
+          hx-swap="innerHTML"
+          hx-trigger="click once">Tech Tree</button>
   {% if mod_type|default('vanilla') in ('ares', 'phobos') %}
   <button class="tab-btn" onclick="showTab(event, 'ares')">Ares</button>
   {% endif %}
@@ -82,6 +99,10 @@
   </table>
 </div>
 
+<div class="tab-content" id="tab-tree" style="display:none;">
+  <p style="color: var(--muted); font-size: 0.85rem;">Loading tech tree&hellip;</p>
+</div>
+
 {% if mod_type|default('vanilla') in ('ares', 'phobos') %}
 <div class="tab-content" id="tab-ares" style="display:none;">
   <p style="color: var(--muted); font-size: 0.85rem;">Ares extension tags will appear here once schemas are loaded.</p>
@@ -101,12 +122,45 @@ function showTab(e, name) {
   document.getElementById('tab-' + name).style.display = 'block';
   e.target.classList.add('active');
 }
+function _getTheater() {
+  var el = document.querySelector('input[name="theater"]:checked');
+  return el ? el.value : 'temperate';
+}
 function setVxlMode(objId, mode, btn) {
+  var sideEl = document.querySelector('.vxl-compass[data-side]') || document.querySelector('.vxl-building-img[data-side]');
+  var side = sideEl ? encodeURIComponent(sideEl.dataset.side || '') : '';
+  var theater = _getTheater();
   document.querySelectorAll('.vxl-facing-img').forEach(function(img) {
     var facing = img.dataset.facing;
-    img.src = '/sprites/' + objId + '/vxl.png?facing=' + facing + '&mode=' + mode;
+    img.src = '/sprites/' + objId + '/vxl.png?facing=' + facing + '&mode=' + mode + '&side=' + side;
+  });
+  document.querySelectorAll('.vxl-building-img').forEach(function(img) {
+    img.src = '/sprites/' + objId + '/vxl.png?mode=' + mode + '&side=' + side + '&theater=' + theater;
   });
   btn.parentElement.querySelectorAll('.vxl-mode-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
+}
+function setTheater(objId, theater) {
+  var sideEl = document.querySelector('.vxl-building-img[data-side]');
+  var side = sideEl ? encodeURIComponent(sideEl.dataset.side || '') : '';
+  var activeBtn = document.querySelector('.vxl-mode-btn.active');
+  var mode = activeBtn ? activeBtn.textContent.trim() : 'Building';
+  // Find mode_id from button text
+  var modeId = 'shp_building';
+  if (activeBtn) {
+    var allBtns = document.querySelectorAll('.vxl-mode-btn');
+    allBtns.forEach(function(b) {
+      if (b === activeBtn) {
+        // Extract onclick mode from reconstructing the call
+        var onc = b.getAttribute('onclick') || '';
+        var m = onc.match(/setVxlMode\('[^']+',\s*'([^']+)'/);
+        if (m) modeId = m[1];
+      }
+    });
+  }
+  document.querySelectorAll('.vxl-building-img').forEach(function(img) {
+    img.dataset.theater = theater;
+    img.src = '/sprites/' + objId + '/vxl.png?mode=' + modeId + '&side=' + side + '&theater=' + theater;
+  });
 }
 </script>

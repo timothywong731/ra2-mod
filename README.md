@@ -9,6 +9,10 @@ Supports vanilla RA2/YR, Ares mods (e.g. Mental Omega 3.3), and Phobos mods.
 - **Visual browser** — Card grid with cameo icons, faction badges, and live search
 - **3D voxel preview** — Isometric VXL renders from all 8 compass directions with turret/barrel composite overlay
 - **Infantry & building preview** — SHP sprite rendering with facing-based compass grid for infantry and isometric preview for structures
+- **Building animations** — Animated GIF overlays for ActiveAnim, IdleAnim, SuperAnim, SpecialAnim, ProductionAnim, and Buildup
+- **Theater support** — NewTheater-aware SHP filename resolution with radio buttons to switch between available theater variants (temperate/snow)
+- **Damaged state preview** — Building frame 1 shows the correct damaged state (distinct from shadow frames 3–5)
+- **Prerequisite tech tree** — Interactive tree visualization showing what each object requires and what it unlocks, with type filters
 - **Inline property editor** — Edit any INI key directly; changes are highlighted and tracked
 - **Non-destructive patching** — All edits write to `mypatch/rulesmd.ini`, leaving originals intact
 - **Patch diff view** — Review pending changes, revert individual fields, export as downloadable INI
@@ -82,7 +86,7 @@ ra2-mod/
 │       └── patch_view.py    Patch diff view and export
 ├── templates/               Jinja2 templates (base + partials + pages)
 ├── static/app.css           Dark theme CSS
-├── tests/                   108+ pytest tests
+├── tests/                   119 pytest tests
 └── docs/                    Design specs and wiki
 ```
 
@@ -126,6 +130,13 @@ Extended documentation lives in [`docs/wiki/`](docs/wiki/):
 - [Patch System](docs/wiki/patch-system.md)
 - [Database & Indexing](docs/wiki/database-indexing.md)
 - [API Routes & HTMX](docs/wiki/api-routes.md)
+
+## External References
+
+- [ModEnc — BuildingTypes](https://modenc.renegadeprojects.com/BuildingTypes) — Complete list of building INI flags
+- [ModEnc — ActiveAnim](https://modenc.renegadeprojects.com/ActiveAnim) — Building animation overlay system
+- [ModEnc — NewTheater](https://modenc.renegadeprojects.com/NewTheater) — Theater-specific SHP filename resolution
+- [ModEnc — Art.ini](https://modenc.renegadeprojects.com/Art.ini) — Art INI documentation
 
 ## License
 
